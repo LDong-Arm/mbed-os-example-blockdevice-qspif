@@ -16,35 +16,39 @@
 
 // QSPI SFDP Flash - Block Device example
 #include "mbed.h"
-#include "QSPIFBlockDevice.h"
-
-QSPIFBlockDevice block_device(QSPI_FLASH1_IO0, QSPI_FLASH1_IO1, QSPI_FLASH1_IO2, QSPI_FLASH1_IO3,
-                              QSPI_FLASH1_SCK, QSPI_FLASH1_CSN, QSPIF_POLARITY_MODE_0, MBED_CONF_QSPIF_QSPI_FREQ);
+#include "BlockDevice.h"
 
 int main()
 {
-    printf("QSPI SFDP Flash Block Device example\n");
-
-    // Initialize the SPI flash device and print the memory layout
-    block_device.init();
+    BlockDevice &block_device = *BlockDevice::get_default_instance();
+    int status = block_device.init();
+    printf("Init status %d\n", status);
     bd_size_t sector_size_at_address_0 = block_device.get_erase_size(0);
+    printf("Sector size %ld\n", status);
 
-    printf("QSPIF BD size: %llu\n",         block_device.size());
-    printf("QSPIF BD read size: %llu\n",    block_device.get_read_size());
-    printf("QSPIF BD program size: %llu\n", block_device.get_program_size());
+    char buffer[] = "ABCD";
 
-    printf("QSPIF BD erase size (at address 0): %llu\n", sector_size_at_address_0);
+    printf("> 4-byte write & read\n");
+    status = block_device.erase(0, sector_size_at_address_0);
+    printf("Erase status %d\n", status);
+    status = block_device.program(buffer, 0, 4);
+    printf("Program status %d\n", status);
+    memset(buffer, 0, sizeof(buffer));
+    status = block_device.read(buffer, 0, 4);
+    printf("Read status %d\n", status);
+    printf("Buffer %.*s\n", 4, buffer);
 
-    // Write "Hello World!" to the first block
-    char *buffer = (char *) malloc(sector_size_at_address_0);
-    sprintf(buffer, "Hello World!\n");
-    block_device.erase(0, sector_size_at_address_0);
-    block_device.program(buffer, 0, sector_size_at_address_0);
+    sprintf(buffer, "ABCD");
+    printf("> 1-byte write & read\n");
+    status = block_device.erase(0, sector_size_at_address_0);
+    printf("Erase status %d\n", status);
+    status = block_device.program(buffer, 0, 1);
+    printf("Program status %d\n", status);
+    memset(buffer, 0, sizeof(buffer));
+    status = block_device.read(buffer, 0, 1);
+    printf("Read status %d\n", status);
+    printf("Buffer %.*s\n", 1, buffer);
 
-    // Read back what was stored
-    block_device.read(buffer, 0, sector_size_at_address_0);
-    printf("%s", buffer);
-
-    // Deinitialize the device
-    block_device.deinit();
+    status = block_device.deinit();
+    printf("Deinit status %d\n", status);
 }
